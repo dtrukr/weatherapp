@@ -2,6 +2,10 @@
 
 A modern weather forecast app built using React Native and Expo. The app allows users to add their favorite cities, view current weather conditions, hourly and daily forecasts, and a city-specific background image.
 
+![Screenshot 1](screenshots/screenshot1.png?raw=true "Screenshot 1")
+![Screenshot 2](screenshots/screenshot2.png?raw=true "Screenshot 2")
+![Screenshot 3](screenshots/screenshot3.png?raw=true "Screenshot 3")
+
 ## Features
 
 - **Add Favorite Cities**: Users can add cities to their favorites list and quickly switch between them.

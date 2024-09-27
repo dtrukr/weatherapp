@@ -154,7 +154,7 @@ const MainScreen = ({
                 <Icon name="menu-outline" size={24} color="white" />
               </TouchableOpacity>
               <View style={styles.headerCenter}>
-                <Text style={styles.cityTitle}>{city || "Select a City"}</Text>
+                <Text style={styles.cityTitle}>{city || "Add a city"}</Text>
               </View>
               <View style={styles.headerIcons}>
                 <TouchableOpacity
