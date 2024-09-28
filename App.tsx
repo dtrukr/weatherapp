@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
-import { createDrawerNavigator } from "@react-navigation/drawer";
+import {
+  createDrawerNavigator,
+  DrawerNavigationProp,
+} from "@react-navigation/drawer";
 import {
   createStackNavigator,
   TransitionPresets,
@@ -15,7 +18,23 @@ import { Text, TouchableOpacity, StyleSheet } from "react-native";
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
 
-const CustomDrawerContent = ({ navigation, favorites, onSelectCity }) => {
+interface City {
+  id: string;
+  name: string;
+  country: string;
+}
+
+interface CustomDrawerContentProps {
+  navigation: DrawerNavigationProp<any>;
+  favorites: City[];
+  onSelectCity: (city: City) => void;
+}
+
+const CustomDrawerContent: React.FC<CustomDrawerContentProps> = ({
+  navigation,
+  favorites,
+  onSelectCity,
+}) => {
   return (
     <DrawerContentScrollView style={styles.drawerContent}>
       <Text style={styles.drawerTitle}>Favorite Cities</Text>
@@ -55,14 +74,21 @@ interface WeatherData {
 }
 
 const App = () => {
-  const [favorites, setFavorites] = useState([]);
-  const [city, setCity] = useState(null);
+  const [favorites, setFavorites] = useState<City[]>([]);
+  const [city, setCity] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [cityImage, setCityImage] = useState(null);
+  const [cityImage, setCityImage] = useState<string | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const [loading, setLoading] = useState(false);
 
-  const fetchWeather = async (cityId: String) => {
+  useEffect(() => {
+    handleSelectCity({
+      id: "2-2950159",
+      name: "Berlin",
+      country: "Germany",
+    });
+  }, []);
+
+  const fetchWeather = async (cityId: string) => {
     try {
       const weatherResponse = await axios.get(
         `https://www.yr.no/api/v0/locations/${cityId}/forecast`
@@ -111,26 +137,26 @@ const App = () => {
         daily: daily,
         hourly: hourly,
       });
+      console.log("-->Got weather data");
     } catch (error) {
       console.error("Error fetching weather:", error);
     }
   };
 
-  const fetchCityImage = async (cityName: String) => {
+  const fetchCityImage = async (cityName: string) => {
     try {
       const response = await axios.get(
         `https://api.unsplash.com/search/photos?query=${cityName}+tourist&client_id=xIvFLUpWyk1m-I8Q7zWAu6q5iD0WE6MEBvUKuVyh_CA&orientation=landscape&per_page=1`
       );
-      const imageUrl = response.data.results[0].urls.full;
+      const imageUrl = response.data.results[0].urls.regular;
       setCityImage(imageUrl);
+      console.log("-->Got city image:", imageUrl);
     } catch (error) {
       console.error("Error fetching city image:", error);
     }
   };
 
-  const handleSelectCity = async (city: { id: String; name: String }) => {
-    setLoading(true);
-
+  const handleSelectCity = async (city: City) => {
     setFavorites((prevFavorites) => {
       if (prevFavorites.some((fav) => fav.id === city.id)) {
         return prevFavorites;
@@ -138,15 +164,9 @@ const App = () => {
       return [...prevFavorites, city];
     });
 
-    await Promise.all([fetchWeather(city.id), fetchCityImage(city.name)]);
-
     setCity(city.name);
-    fadeAnim.setValue(0);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setLoading(false));
+
+    await Promise.all([fetchWeather(city.id), fetchCityImage(city.name)]);
   };
 
   const MainStack = () => (
@@ -161,13 +181,10 @@ const App = () => {
         {(props) => (
           <MainScreen
             {...props}
-            favorites={favorites}
-            setFavorites={setFavorites}
             city={city}
             weatherData={weatherData}
             cityImage={cityImage}
             onSelectCity={handleSelectCity}
-            loading={loading}
           />
         )}
       </Stack.Screen>
@@ -195,8 +212,8 @@ const App = () => {
         initialRouteName="Main"
         drawerContent={(props) => (
           <CustomDrawerContent
+            favorites={[]}
             {...props}
-            favorites={favorites}
             onSelectCity={handleSelectCity}
           />
         )}

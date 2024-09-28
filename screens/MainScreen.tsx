@@ -9,7 +9,6 @@ import {
   Dimensions,
   Animated,
   Image,
-  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -17,21 +16,43 @@ import { LinearGradient } from "expo-linear-gradient";
 
 const { height: windowHeight, width: windowWidth } = Dimensions.get("window");
 
-const MainScreen = ({
+interface WeatherData {
+  temperature: number;
+  description: string;
+  icon: string;
+  maxTemp: number;
+  minTemp: number;
+  hourly: Array<{ time: string; temp: number; icon: string }>;
+  daily: Array<{
+    date: string;
+    temp_max: number;
+    temp_min: number;
+    icon: string;
+  }>;
+}
+
+interface MainScreenProps {
+  city: string | null;
+  weatherData: WeatherData | null;
+  cityImage: string | null;
+  onSelectCity: (city: string) => void;
+}
+
+const MainScreen: React.FC<MainScreenProps> = ({
   city,
   weatherData,
   cityImage,
   onSelectCity,
-  loading,
 }) => {
   const fadeAnim = useState(new Animated.Value(0))[0];
   const navigation = useNavigation();
 
   useEffect(() => {
     if (cityImage) {
+      console.log("-->Animating", cityImage);
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 1000,
         useNativeDriver: true,
       }).start();
     }
@@ -129,12 +150,7 @@ const MainScreen = ({
           />
         </View>
         <View style={styles.foregroundContainer}>
-          {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#fff" />
-            </View>
-          )}
-          {!loading && cityImage && (
+          {cityImage && (
             <View style={styles.cityImageContainer}>
               <Animated.View style={{ opacity: fadeAnim }}>
                 <Image source={{ uri: cityImage }} style={styles.cityImage} />
@@ -161,7 +177,7 @@ const MainScreen = ({
                   style={styles.iconButton}
                   onPress={() =>
                     navigation.navigate("AddLocation", {
-                      onSelectCity: (selectedCity) => {
+                      onSelectCity: (selectedCity: string) => {
                         onSelectCity(selectedCity);
                       },
                     })
@@ -336,12 +352,6 @@ const styles = StyleSheet.create({
   headerCenter: {
     flex: 3,
     alignItems: "center",
-  },
-  loadingContainer: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
 });
 
