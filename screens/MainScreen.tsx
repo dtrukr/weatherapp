@@ -8,55 +8,29 @@ import {
   Dimensions,
   Animated,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import axios from "axios";
+import { MainScreenProps, WeatherData, City } from "../types";
 
 const { height: windowHeight, width: windowWidth } = Dimensions.get("window");
-
-interface WeatherData {
-  temperature: number;
-  description: string;
-  icon: string;
-  maxTemp: number;
-  minTemp: number;
-  hourly: Array<{ time: string; temp: number; icon: string }>;
-  daily: Array<{
-    date: string;
-    temp_max: number;
-    temp_min: number;
-    icon: string;
-  }>;
-}
-
-interface City {
-  id: string;
-  name: string;
-  country: string;
-}
-
-interface MainScreenProps {
-  city: string | null;
-  onSelectCity: (city: City) => void;
-}
 
 const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [cityImage, setCityImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const backgroundPositionAnim = useState(new Animated.Value(0))[0];
   const navigation = useNavigation();
 
   useEffect(() => {
     if (city) {
-      handleSelectCity({
-        id: "2-2950159",
-        name: city,
-        country: "Germany",
-      });
+      handleSelectCity(city);
     }
   }, [city]);
 
@@ -109,7 +83,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
         daily: daily,
         hourly: hourly,
       });
-      console.log("-->Got weather data");
     } catch (error) {
       console.error("Error fetching weather:", error);
     }
@@ -122,7 +95,6 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
       );
       const imageUrl = response.data.results[0].urls.regular;
       setCityImage(imageUrl);
-      console.log("-->Got city image:", imageUrl);
     } catch (error) {
       console.error("Error fetching city image:", error);
     }
@@ -131,7 +103,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
   const handleSelectCity = async (city: City) => {
     setLoading(true);
 
-    await Promise.all([fetchWeather(city.id), fetchCityImage(city.name)]);
+    await Promise.all([
+      fetchWeather(city.cityId),
+      fetchCityImage(city.cityName),
+    ]);
 
     fadeAnim.setValue(0);
     Animated.timing(fadeAnim, {
@@ -141,9 +116,16 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
     }).start(() => setLoading(false));
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (city) {
+      await handleSelectCity(city);
+    }
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     if (cityImage) {
-      console.log("-->Animating", cityImage);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
@@ -267,7 +249,12 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
               </Animated.View>
             </View>
           )}
-          <ScrollView contentContainerStyle={styles.scrollContent}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.drawerButton}
@@ -276,14 +263,23 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
                 <Icon name="menu-outline" size={24} color="white" />
               </TouchableOpacity>
               <View style={styles.headerCenter}>
-                <Text style={styles.cityTitle}>{city || "Add a city"}</Text>
+                <Text style={styles.cityTitle}>
+                  {city?.cityName || "Add a city"}
+                </Text>
+                {loading && (
+                  <ActivityIndicator
+                    size="small"
+                    color="#fff"
+                    style={styles.spinner}
+                  />
+                )}
               </View>
               <View style={styles.headerIcons}>
                 <TouchableOpacity
                   style={styles.iconButton}
                   onPress={() =>
                     navigation.navigate("AddLocation", {
-                      onSelectCity: (selectedCity: string) => {
+                      onSelectCity: (selectedCity: City) => {
                         onSelectCity(selectedCity);
                       },
                     })
@@ -379,7 +375,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "white",
   },
-
   divider: {
     borderBottomWidth: 0.5,
     borderBottomColor: "white",
@@ -456,8 +451,18 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   headerCenter: {
-    flex: 3,
+    flex: 5,
     alignItems: "center",
+    flexDirection: "row",
+  },
+  spinner: {
+    marginLeft: 10,
+  },
+  loadingContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
 });
 

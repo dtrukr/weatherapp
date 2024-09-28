@@ -12,16 +12,23 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import axios from "axios";
+import { City } from "../types"; // Adjust the import path as necessary
 
-interface CitySuggestion {
-  id: string;
-  name: string;
-  country: string;
+interface AddLocationScreenProps {
+  navigation: any;
+  route: {
+    params: {
+      onSelectCity: (city: City) => void;
+    };
+  };
 }
 
-const AddLocationScreen = ({ navigation, route }: any) => {
+const AddLocationScreen: React.FC<AddLocationScreenProps> = ({
+  navigation,
+  route,
+}) => {
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<City[]>([]);
   const [debounceTimeout, setDebounceTimeout] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const searchInputRef = useRef<TextInput>(null);
@@ -50,11 +57,13 @@ const AddLocationScreen = ({ navigation, route }: any) => {
         const filteredLocations = response.data._embedded.location.filter(
           (location: any) => location.category.id !== "CE12"
         );
-        const suggestionsList = filteredLocations.map((location: any) => ({
-          id: location.id,
-          name: location.name,
-          country: location.country.name,
-        }));
+        const suggestionsList: City[] = filteredLocations.map(
+          (location: any) => ({
+            cityId: location.id,
+            cityName: location.name,
+            countryName: location.country.name,
+          })
+        );
         setSuggestions(suggestionsList);
       } catch (error) {
         console.error("Error fetching city suggestions:", error);
@@ -66,7 +75,7 @@ const AddLocationScreen = ({ navigation, route }: any) => {
     setDebounceTimeout(newTimeout);
   };
 
-  const handleCitySelect = (city: CitySuggestion) => {
+  const handleCitySelect = (city: City) => {
     if (route.params && route.params.onSelectCity) {
       route.params.onSelectCity(city);
     }
@@ -103,14 +112,14 @@ const AddLocationScreen = ({ navigation, route }: any) => {
           ) : (
             <FlatList
               data={suggestions}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item.cityId}
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.suggestionItem}
                   onPress={() => handleCitySelect(item)}
                 >
                   <Text style={styles.suggestionText}>
-                    {item.name}, {item.country}
+                    {item.cityName}, {item.countryName}
                   </Text>
                 </TouchableOpacity>
               )}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import {
   createDrawerNavigator,
@@ -12,15 +12,10 @@ import MainScreen from "./screens/MainScreen";
 import AddLocationScreen from "./screens/AddLocationScreen";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { Text, TouchableOpacity, StyleSheet } from "react-native";
+import { City } from "./types";
 
 const Drawer = createDrawerNavigator();
 const Stack = createStackNavigator();
-
-interface City {
-  id: string;
-  name: string;
-  country: string;
-}
 
 interface CustomDrawerContentProps {
   navigation: DrawerNavigationProp<any>;
@@ -39,8 +34,8 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = ({
       {favorites.length > 0 ? (
         favorites.map((city) => (
           <DrawerItem
-            key={city.id}
-            label={`${city.name}, ${city.country}`}
+            key={city.cityId}
+            label={`${city.cityName}, ${city.countryName}`}
             onPress={() => {
               onSelectCity(city);
               navigation.closeDrawer();
@@ -63,17 +58,25 @@ const CustomDrawerContent: React.FC<CustomDrawerContentProps> = ({
 
 const App = () => {
   const [favorites, setFavorites] = useState<City[]>([]);
-  const [city, setCity] = useState<string | null>(null);
+  const [city, setCity] = useState<City | null>(null);
+
+  useEffect(() => {
+    handleSelectCity({
+      cityId: "2-2950159",
+      cityName: "Berlin",
+      countryName: "Germany",
+    });
+  }, []);
 
   const handleSelectCity = (city: City) => {
     setFavorites((prevFavorites) => {
-      if (prevFavorites.some((fav) => fav.id === city.id)) {
+      if (prevFavorites.some((fav) => fav.cityId === city.cityId)) {
         return prevFavorites;
       }
       return [...prevFavorites, city];
     });
 
-    setCity(city.name);
+    setCity(city);
   };
 
   const MainStack = () => (
@@ -98,7 +101,7 @@ const App = () => {
         {(props) => (
           <AddLocationScreen
             {...props}
-            onSelectCity={(city) => {
+            onSelectCity={(city: City) => {
               handleSelectCity(city);
             }}
           />
