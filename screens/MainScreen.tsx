@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ImageBackground,
   Dimensions,
   Animated,
   Image,
@@ -13,6 +12,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import Icon from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
+import axios from "axios";
 
 const { height: windowHeight, width: windowWidth } = Dimensions.get("window");
 
@@ -31,21 +31,115 @@ interface WeatherData {
   }>;
 }
 
-interface MainScreenProps {
-  city: string | null;
-  weatherData: WeatherData | null;
-  cityImage: string | null;
-  onSelectCity: (city: string) => void;
+interface City {
+  id: string;
+  name: string;
+  country: string;
 }
 
-const MainScreen: React.FC<MainScreenProps> = ({
-  city,
-  weatherData,
-  cityImage,
-  onSelectCity,
-}) => {
+interface MainScreenProps {
+  city: string | null;
+  onSelectCity: (city: City) => void;
+}
+
+const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [cityImage, setCityImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const backgroundPositionAnim = useState(new Animated.Value(0))[0];
   const navigation = useNavigation();
+
+  useEffect(() => {
+    if (city) {
+      handleSelectCity({
+        id: "2-2950159",
+        name: city,
+        country: "Germany",
+      });
+    }
+  }, [city]);
+
+  const fetchWeather = async (cityId: string) => {
+    try {
+      const weatherResponse = await axios.get(
+        `https://www.yr.no/api/v0/locations/${cityId}/forecast`
+      );
+      const dayIntervals = weatherResponse.data.dayIntervals;
+      const shortIntervals = weatherResponse.data.shortIntervals;
+
+      const daily = dayIntervals.map(
+        (day: {
+          start: any;
+          temperature: { min: any; max: any };
+          twentyFourHourSymbol: any;
+          precipitation: { value: any };
+        }) => ({
+          date: day.start,
+          temp_min: day.temperature.min,
+          temp_max: day.temperature.max,
+          icon: day.twentyFourHourSymbol,
+          precipitation: day.precipitation.value,
+        })
+      );
+
+      const hourly = shortIntervals
+        .map(
+          (hour: {
+            start: any;
+            temperature: { value: any };
+            symbolCode: { next1Hour: any };
+            precipitation: { value: any };
+          }) => ({
+            time: hour.start,
+            temp: hour.temperature.value,
+            icon: hour.symbolCode.next1Hour,
+            precipitation: hour.precipitation.value,
+          })
+        )
+        .slice(0, 24);
+
+      const currentWeather = dayIntervals[0];
+      setWeatherData({
+        temperature: currentWeather.temperature.value,
+        description: currentWeather.twentyFourHourSymbol.replaceAll("_", " "),
+        icon: currentWeather.twentyFourHourSymbol,
+        maxTemp: currentWeather.temperature.max,
+        minTemp: currentWeather.temperature.min,
+        daily: daily,
+        hourly: hourly,
+      });
+      console.log("-->Got weather data");
+    } catch (error) {
+      console.error("Error fetching weather:", error);
+    }
+  };
+
+  const fetchCityImage = async (cityName: string) => {
+    try {
+      const response = await axios.get(
+        `https://api.unsplash.com/search/photos?query=${cityName}+tourist&client_id=xIvFLUpWyk1m-I8Q7zWAu6q5iD0WE6MEBvUKuVyh_CA&orientation=landscape&per_page=1`
+      );
+      const imageUrl = response.data.results[0].urls.regular;
+      setCityImage(imageUrl);
+      console.log("-->Got city image:", imageUrl);
+    } catch (error) {
+      console.error("Error fetching city image:", error);
+    }
+  };
+
+  const handleSelectCity = async (city: City) => {
+    setLoading(true);
+
+    await Promise.all([fetchWeather(city.id), fetchCityImage(city.name)]);
+
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start(() => setLoading(false));
+  };
 
   useEffect(() => {
     if (cityImage) {
@@ -57,6 +151,19 @@ const MainScreen: React.FC<MainScreenProps> = ({
       }).start();
     }
   }, [cityImage]);
+
+  useEffect(() => {
+    if (weatherData) {
+      const backgroundPosition = calculateBackgroundPosition(
+        weatherData.temperature
+      );
+      Animated.timing(backgroundPositionAnim, {
+        toValue: -backgroundPosition,
+        duration: 1000,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [weatherData]);
 
   const getWeatherIcon = (icon: string) => {
     switch (icon) {
@@ -136,17 +243,16 @@ const MainScreen: React.FC<MainScreenProps> = ({
     navigation.openDrawer();
   };
 
-  const backgroundPosition = weatherData
-    ? calculateBackgroundPosition(weatherData.temperature)
-    : 0;
-
   return (
     <View style={styles.container}>
       <View style={styles.foregroundContainer}>
         <View style={styles.backgroundContainer}>
-          <ImageBackground
+          <Animated.Image
             source={require("../assets/background_thermo_blurred.png")}
-            style={[styles.backgroundImage, { top: -backgroundPosition }]}
+            style={[
+              styles.backgroundImage,
+              { transform: [{ translateY: backgroundPositionAnim }] },
+            ]}
           />
         </View>
         <View style={styles.foregroundContainer}>
