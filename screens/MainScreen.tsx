@@ -396,10 +396,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5,
     borderBottomColor: "white",
     opacity: 0.3,
-    marginVertical: 10,
+    marginTop: 10,
   },
   hourlyScroll: {
-    marginTop: 20,
+    marginTop: 10,
     paddingHorizontal: 16,
   },
   hourlyItem: {
