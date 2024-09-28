@@ -6,12 +6,18 @@ export interface WeatherData {
   icon: string;
   maxTemp: number;
   minTemp: number;
-  hourly: Array<{ time: string; temp: number; icon: string }>;
+  hourly: Array<{
+    time: string;
+    temp: number;
+    icon: string;
+    precipitation: number;
+  }>;
   daily: Array<{
     date: string;
     temp_max: number;
     temp_min: number;
     icon: string;
+    precipitation: number;
   }>;
 }
 

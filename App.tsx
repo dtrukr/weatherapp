@@ -102,7 +102,7 @@ const App = () => {
           <AddLocationScreen
             {...props}
             onSelectCity={(city: City) => {
-              handleSelectCity(city);
+              return handleSelectCity(city);
             }}
           />
         )}

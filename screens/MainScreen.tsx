@@ -24,6 +24,7 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
   const [cityImage, setCityImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const backgroundPositionAnim = useState(new Animated.Value(0))[0];
   const navigation = useNavigation();
@@ -83,8 +84,10 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
         daily: daily,
         hourly: hourly,
       });
+      setError(null); // Clear any previous errors
     } catch (error) {
       console.error("Error fetching weather:", error);
+      setError("Failed to fetch weather data. Please try again.");
     }
   };
 
@@ -187,6 +190,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
               </Text>
               {getWeatherIcon(hour.icon)}
               <Text style={styles.hourlyTemp}>{Math.round(hour.temp)}°</Text>
+              <Text style={styles.hourlyPrecipitation}>
+                {hour.precipitation} mm
+              </Text>
             </View>
           ))}
         </ScrollView>
@@ -213,6 +219,9 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
             <View style={styles.dailyColumnRight}>
               <Text style={styles.dailyTemp}>
                 ↑ {Math.round(day.temp_max)}° ↓ {Math.round(day.temp_min)}°
+              </Text>
+              <Text style={styles.dailyPrecipitation}>
+                {day.precipitation} mm
               </Text>
             </View>
           </View>
@@ -290,25 +299,33 @@ const MainScreen: React.FC<MainScreenProps> = ({ city, onSelectCity }) => {
               </View>
             </View>
 
-            {weatherData && (
-              <View style={styles.weatherMain}>
-                <Text style={styles.mainTemperature}>
-                  {Math.round(weatherData.temperature)}°
-                </Text>
-                {getWeatherIcon(weatherData.icon)}
-                <Text style={styles.weatherDescription}>
-                  {weatherData.description}
-                </Text>
-                <Text style={styles.tempRange}>
-                  ↑ {Math.round(weatherData.maxTemp)}° ↓{" "}
-                  {Math.round(weatherData.minTemp)}°
-                </Text>
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
               </View>
+            ) : (
+              <>
+                {weatherData && (
+                  <View style={styles.weatherMain}>
+                    <Text style={styles.mainTemperature}>
+                      {Math.round(weatherData.temperature)}°
+                    </Text>
+                    {getWeatherIcon(weatherData.icon)}
+                    <Text style={styles.weatherDescription}>
+                      {weatherData.description}
+                    </Text>
+                    <Text style={styles.tempRange}>
+                      ↑ {Math.round(weatherData.maxTemp)}° ↓{" "}
+                      {Math.round(weatherData.minTemp)}°
+                    </Text>
+                  </View>
+                )}
+
+                {weatherData && renderHourlyForecast()}
+
+                {weatherData && renderDailyForecast()}
+              </>
             )}
-
-            {weatherData && renderHourlyForecast()}
-
-            {weatherData && renderDailyForecast()}
           </ScrollView>
         </View>
       </View>
@@ -434,6 +451,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
   },
+
   cityImage: {
     width: windowWidth,
     height: windowHeight,
@@ -463,6 +481,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  hourlyPrecipitation: {
+    color: "white",
+    fontSize: 12,
+  },
+  dailyPrecipitation: {
+    color: "white",
+    fontSize: 14,
+    textAlign: "right",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    borderRadius: 10,
+    margin: 20,
+  },
+  errorText: {
+    color: "white",
+    fontSize: 18,
+    textAlign: "center",
   },
 });
 
